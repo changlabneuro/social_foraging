@@ -19,6 +19,11 @@ excel_files = courtney__cell_files_to_object_files( getFiles( excel_directory ) 
 
 fields.data = patch_fields;
 
+%   objects
+
+travel_time_added = courtney__add_string_travel_time( struct( 'images', objects ), fields );
+objects = travel_time_added.images;
+
 excel_files.images = courtney__convert_to_eyelink_time( objects, excel_files, fields );
 
 patches = excel_files;

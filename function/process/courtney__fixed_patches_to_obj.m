@@ -27,6 +27,7 @@ end
 
 all_objects = all_objects.addfield( 'valences' );
 all_objects( 'valences' ) = all_objects( 'targetColor' );
+all_objects = all_objects.rmfield( 'targetColor' );
 
 data_fields = fieldmap.data;
 
