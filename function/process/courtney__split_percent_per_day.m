@@ -1,11 +1,13 @@
-function obj = courtney__split_percent_per_day( obj, bounds )
+function obj = courtney__split_percent_per_day( obj, bounds, within )
+
+if ( nargin < 3 ); within = { 'days', 'imageN' }; end;
 
 msg = 'bounds must be a double with 2 elements, in the range of [0, 1]';
 
 assert( isa( bounds, 'double'), msg );
 assert( all( bounds <= 1 & bounds >= 0 ), msg );
 
-indices = obj.getindices( { 'days', 'imageN' } );
+indices = obj.getindices( within );
 
 obj = obj.addfield( 'percentages' );
 

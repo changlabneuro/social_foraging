@@ -1,6 +1,6 @@
 %% excel file method
 
-outerfolder = '/Users/court/Documents/MATLAB/EDF2Mat/reformatted/113016/excel';
+outerfolder = fullfile( pathfor( 'excel_raw_data' ), '112216' );
 
 [e.excel_images, e.excel_fields] = courtney__process__excel_method( outerfolder );
 
@@ -8,7 +8,7 @@ e.excel_images = e.excel_images.lower();
 
 %% output patch files (fixed)
 
-outerfolder = '/Volumes/My Passport/NICK/Chang Lab 2016/courtney/behavioral/archive/social_control_data';
+outerfolder = fullfile( pathfor( 'patch_raw_data' ), '113016' );
 
 [ e.patch_images, e.patch_fields] = courtney__process__patch_method( outerfolder );
 
