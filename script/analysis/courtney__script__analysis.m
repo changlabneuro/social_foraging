@@ -15,21 +15,22 @@ raw.excel_images = DataObjectStruct( raw.excel_images );
 raw.excel_images = courtney__add_day_labels( raw.excel_images );
 processed = courtney__add_day_labels( processed );
 
+processed = processed.replace( 'neg', 'negative' );
+processed = processed.replace( 'pos', 'positive' );
+
 % load( 'raw.mat' );
 
 %% specify trial parameters
 
-separated = processed.only( {'negative', '0.5'} );
+separated = processed.only( {'positive', 'lager'} );
 
-%% split into sections
+%% split processed into sections
 
 separated = separated.foreach( @courtney__split_percent_per_day, [0 1] );
 
-%   unprocessed
+%% split unprocessed into sections
 
-to_split = raw.excel_images.only( 'block__valence' );
-
-raw_split.excel_images = to_split.foreach( @courtney__split_percent_per_day, [.25 .5], { 'days' } );
+raw_split.excel_images = raw.excel_images.foreach( @courtney__split_percent_per_day, [.5 1], { 'days' } );
 
 %% fix psth
 
@@ -37,7 +38,9 @@ analyses.psth = courtney__analysis__fix_psth( separated );
 
 %% separate patch res and travel time
 
-raw_separated = raw_split.excel_images.images.remove( { 'endbatch', 'image_state_maxed_out', 'travelbarselected' } );
+to_split = raw_split.excel_images.images.only( {'block__valence','jodo'} );
+
+raw_separated = to_split.remove( { 'endbatch', 'image_state_maxed_out', 'travelbarselected' } );
 patch_res = raw_separated.data(:,2) - raw_separated.data(:, 1);
 travel_time = raw_separated.data(:,3);
 
@@ -45,11 +48,17 @@ thresh = patch_res > 100;
 patch_res = patch_res( thresh, : ); travel_time = travel_time( thresh );
 
 
-%% see haydens -- delay discounting / simple exponential
+%% save objects
+
+goto( 'processed_data' );
 
 objects = separated.objectfields();
 
+ignore_fields = { 'fix_events', 'fix_psth' };
+
 for i = 1:numel( objects )
+    
+    if ( any( strcmp( ignore_fields, objects{i} ) ) ); continue; end;
 
     data = getdata( separated.( objects{i} ) );
 
