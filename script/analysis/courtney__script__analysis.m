@@ -1,5 +1,5 @@
 %% load in
-pathinit('court'); pathadd('court');
+% pathinit('court'); pathadd('court');
 load( 'processed.mat' );
 files = { 'events', 'images', 'labels', 'times' };
 
@@ -34,7 +34,7 @@ raw_split.excel_images = raw.excel_images.foreach( @courtney__split_percent_per_
 
 %% fix psth
 
-analyses.psth = courtney__analysis__fix_psth( separated );
+analyses.psth = courtney__analysis__fix_psth( separated, 100 );
 
 %% separate patch res and travel time
 

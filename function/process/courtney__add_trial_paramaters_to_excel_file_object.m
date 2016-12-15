@@ -56,6 +56,7 @@ in_markers.trialEnd = { 'TravelBarSelected', 'Image_State_Maxed_Out' };
 in_markers.isValence = { 'pos', 'neg' };
 in_markers.isSocial = { 'soc', 'non' };
 in_markers.travelTime = { 'TT_use: ' };
+in_markers.nextPatch = { '' };
 
 check_validity.validImageType = false;
 check_validity.validStartAndEndTime = false;
