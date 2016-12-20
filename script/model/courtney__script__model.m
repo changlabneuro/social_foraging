@@ -1,21 +1,43 @@
 %%  delay discount
-separators = { 'block__valence', 'lager' };
+
+% separators = { 'block__valence', 'lager' };
+separators = { 'block__valence' };
 
 separated = processed.only( separators );
 separate_images = raw.excel_images.images.only( separators );
 
-courtney__model__delay_discounting( separated, separate_images );
+[analyses.fits.mvts, analyses.fits.discount] = courtney__model__delay_discounting( separated, separate_images );
+
+analyses.aics.aic = cellfun( @(x) x.mdl.ModelCriterion.AIC, analyses.fits.mvts );
+analyses.aics.tt = cellfun( @(x) x.travel_time, analyses.fits.mvts );
 
 %%  mvt
 
-separators = { 'block__valence', 'lager' };
+% separators = { 'block__social', 'nonsocial' };
+separators = { 'block__valence', 'block__color_control', 'negative' };
+% separators = { 'block__social', 'lager', 'expression__na' };
 
 separated = processed.only( separators );
 
 analyses.psth = courtney__analysis__fix_psth( separated, 100 );
+    
+analyses.fits = courtney__model__mvt( analyses.psth.summed, ...
+    'binnedMeasure', analyses.psth.binned, ...
+    'savePlots', false, ...
+    'plotSubfolder', '121916/social_control/social' );
 
-% analyses.fits = courtney__model__mvt( analyses.psth.summed, 'showPlots', true );
-analyses.fits = courtney__model__mvt( analyses.psth.summed );
+%%  1c
+
+% separators = { 'block__social', 'nonsocial' };
+separators = { 'block__valence', 'block__color_control', 'neg' };
+
+separate_images = raw.excel_images.images.only( separators );
+
+courtney__plot__observed_and_optimal_travel_time_vs_patch_res( ...
+    separate_images, analyses.fits.travelTime_vs_patchResidence, ...
+    'yLimits', [0 5], ...
+    'savePlot', true, ...
+    'plotSubfolder', '121916/valence/negative' );
 
 %%  sliding window slope comparison
 

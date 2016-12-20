@@ -4,7 +4,11 @@ params = struct( ...
     'intakeFunction', 'log', ...
     'patchTimes', 0:numel(measure), ...
     'travelTimes', [10 30 50 70], ...
-    'showPlots', true ...
+    'showPlots', true, ...
+    'savePlots', false, ...
+    'extension', 'epsc', ...
+    'binnedMeasure', [], ...
+    'plotSubfolder', '121916' ...
 );
 params = parsestruct( params, varargin );
 
@@ -65,20 +69,50 @@ outs.travelTime_vs_patchResidence.patch_time = optimal_patch_times;
 
 if ( ~params.showPlots ); return; end;
 
+savepath = fullfile( pathfor('plots'), params.plotSubfolder );
+extension = params.extension;
+
+%   plot raw binned look counts, if they exist
+
+if ( ~isempty(params.binnedMeasure) )
+    figure;
+    plot( params.binnedMeasure );
+    fix_tick( 'xticklabel' );
+    xlabel( 'Time (s)' );
+    ylabel( 'Fixation counts: summed over trials, binned into 100ms bins' );
+    filename = fullfile( savepath, 'binned_looking_behavior' );
+    saveas( gcf, filename, extension );
+end
+
+
 %   comparison between fitted + observed
 
 figure; hold on;
 plot( g( patch_times ) );
 plot( measure );
 legend( {'Approximated', 'Observed'} );
+ylabel( 'Social reward harvested' ); fix_tick( 'xticklabel' );
+
+if ( params.savePlots )
+    filename = fullfile( savepath, 'gT_vs_observed' );
+    saveas(gcf, filename, extension );
+end
 
 %   patch-res vs. max intake rate, per travel time
 
 figure; hold on;
 plot( rates );
 plot( max_indices, max_rates, 'k', 'linewidth', 2 );
+legend__tts = cell( size( travel_times ) );
+for i = 1:numel(travel_times), legend__tts{i} = num2str( travel_times(i) ); end;
+legend( legend__tts );
 fix_tick( 'xticklabel' ); xlabel( 'Time (s)' ); ylabel( 'E_n' );
 ylim( [0, max( max_rates(:) )] );
+
+if ( params.savePlots )
+    filename = fullfile( savepath, 'energy_intake_vs_patch_res' );
+    saveas(gcf, filename, extension );
+end
 
 %   travel time vs. rate-maximizing patch-res time
 
@@ -90,6 +124,7 @@ fix_tick( 'yticklabel' );
 fix_tick( 'xticklabel' );
 xlabel( 'Travel Time' );
 ylabel( 'Patch Residence Time' );
+
 
 end
 
