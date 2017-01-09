@@ -46,7 +46,7 @@ end
 
 function store_all = per_session( obj, params )
 
-per_image_fields = { 'looking_duration', 'n_fixations', 'fix_psth' };
+per_image_fields = { 'looking_duration', 'n_fixations', 'fix_psth', 'proportion' };
 
 if ( strcmp( obj.events.dtype, 'cell' ) )
     assert( count( obj.events, 1 ) == 1, 'More than one events file was found for this session' );
@@ -338,7 +338,7 @@ end
 
 function prop = get_area_proportion( image_roi, sub_roi )
 
-prop = get_area( sub_roi ) / get_area( image_roi );
+prop = sqrt( get_area(sub_roi) / get_area(image_roi) );
 
 end
 

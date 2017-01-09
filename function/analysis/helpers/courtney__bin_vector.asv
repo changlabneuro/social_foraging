@@ -1,0 +1,36 @@
+function binned = courtney__bin_vector( arr, binsize, method )
+
+nbins = ceil( numel(arr) / binsize );
+i = 1; terminus = binsize; start = 1;
+binned = zeros( 1, nbins );
+
+while ( terminus <= numel(arr) )  
+  
+  binned(i) = bin;
+  i = i + 1;
+  start = start + binsize;
+  terminus = terminus + binsize;
+end
+
+if ( numel(arr) - start - 1 > 0 )
+  binned(end) = mean( arr(start:end) );
+end
+
+
+end
+
+function bin = get_bin( arr, start, terminus, method )
+
+switch ( method )
+  case 'mean'
+    bin = mean( arr(start:terminus) );
+  case 'sum'
+    bin = sum( arr(start:terminus) );
+  otherwise
+    error( ...
+      'Possible methods are ''mean'' and ''sum''; input was ''%s''', method );
+end
+
+
+
+end
