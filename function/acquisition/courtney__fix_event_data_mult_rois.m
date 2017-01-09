@@ -1,4 +1,4 @@
-function store_across_sessions = courtney__fix_event_data( obj, fields, varargin )
+function store_across_sessions = courtney__fix_event_data_mult_rois( obj, fields, varargin )
 
 start_col = find( strcmp( fields.data, 'imageDisplayedTime' ) );
 end_col = find( strcmp( fields.data, 'travelBarSelectedTime' ) );
@@ -10,10 +10,13 @@ params = struct( ...
     'startTimeColumn', start_col, ...
     'endTimeColumn', end_col, ...
     'fix_psth_preallocation_amount', 15e3, ...
-    'roi', struct( 'minX', 600, 'maxX', 1200, 'minY', 150, 'maxY', 750 ) ...
+    'roi', struct( 'minX', 600, 'maxX', 1200, 'minY', 150, 'maxY', 750 ), ...
+    'n_divisions', 10 ...
 );
 
 params = parsestruct( params, varargin );
+
+params = create_rois( params );
 
 obj = validate_input( obj );
 
@@ -88,9 +91,15 @@ for i = 1:numel( image_starts )
     %       occurred after the image was presented. 
     %   end index is the index of the final fixation *starttime* that
     %       occurred before the image ended.
-
-    start_index = find( fix_ends > image_start, 1, 'first' );
-    end_index = find( fix_starts < image_end, 1, 'last' );
+    
+    start_index = find( fix_starts >= image_start, 1, 'first' );
+%     start_index = find( fix_ends >= image_start, 1, 'first' );
+    %   OPTION 1 -- fixations are only considered valid if they end before
+    %   the image ends
+    end_index = find( fix_ends <= image_end, 1, 'last' );
+    %   OPTION 2 -- fixations *are* considered valid so long as they being
+    %   before they the image ends
+%     end_index = find( fix_starts < image_end, 1, 'last' );
 
     %   validate
 
@@ -140,10 +149,15 @@ for i = 1:numel( image_starts )
     
     valid_images(i) = true;
     
+    %   proportion of image seen over time
+    
+    prop = get_proportion_of_image_seen_over_time( within_time_bounds, image_start, params );
+    
     %   data per image
     
     per_image.looking_duration = sum( within_time_bounds(:, 3) );
     per_image.n_fixations = size( within_time_bounds, 1 );
+    per_image.proportion = prop;
     
     %   fix event psth -- still per image
     
@@ -237,8 +251,99 @@ function obj = validate_input( obj )
     assert_fields_exist( obj, { 'labels', 'times', 'events', 'images' } );
 end
 
+function params = create_rois( params )
 
+roi = params.roi;
+div = params.n_divisions;
 
+x = (roi.maxX - roi.minX) / div;
+y = (roi.maxY - roi.minY) / div;
 
+xs = roi.minX:x:roi.maxX;
+ys = roi.minY:y:roi.maxY;
 
+rois = cell( div*div, 1 );
+stp = 1;
+for i = 1:numel(xs) - 1
+  for j = 1:numel(ys) - 1
+    r = struct();
+    r.minX = xs(i);
+    r.maxX = xs(i+1);
+    r.minY = ys(j);
+    r.maxY = ys(j+1);
+    rois{stp} = r;
+    stp = stp + 1;
+  end
+end
 
+params.rois = rois;
+
+end
+
+function explored_vector = get_proportion_of_image_seen_over_time( evts, start, params )
+
+%   get the proportion of the image seen
+
+vec_size = params.fix_psth_preallocation_amount;
+roi = params.roi;
+rois = params.rois;
+
+explored_vector = ones( 1, vec_size );
+
+inds = get_indices_from_evts( evts, rois );
+
+cumulative = 1;
+
+while ( ~isempty(inds) )
+  area_prop = get_area_proportion( roi, rois{inds(1)} );
+  current = evts(1, :);
+  current_indices = current(1:2) - start;
+  
+  if ( current_indices(1) < 0 ), current_indices(1) = 0; end;
+  if ( current_indices(2) > vec_size ), current_indices(2) = vec_size; end;
+  
+  cumulative = cumulative - area_prop;
+  
+  explored_vector( current_indices(2):end ) = cumulative;
+  
+  inds(1) = [];
+  evts(1,:) = [];
+end
+
+end
+
+function inds = get_indices_from_evts( evts, rois )
+
+inds = zeros( size(evts,1), 1 );
+
+for i = 1:size(evts, 1)
+  stp = 1;
+  while ( ~is_withinbounds( evts(i,:), rois{stp} ) )
+    stp = stp + 1;
+  end
+  inds(i) = stp;
+end
+
+end
+
+function bool = is_withinbounds( evts, roi )
+
+bool = ...
+  evts(:,4) >= roi.minX & ...
+  evts(:,4) <= roi.maxX & ...
+  evts(:,5) >= roi.minY & ...
+  evts(:,5) <= roi.maxY;
+
+end
+
+function prop = get_area_proportion( image_roi, sub_roi )
+
+prop = get_area( sub_roi ) / get_area( image_roi );
+
+end
+
+function area = get_area( roi )
+
+area = (roi.maxX - roi.minX) * (roi.maxY - roi.minY);
+
+end

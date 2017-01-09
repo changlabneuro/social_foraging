@@ -1,20 +1,31 @@
 %%  delay discount
 
 % separators = { 'block__valence', 'lager' };
-separators = { 'block__valence' };
+% separators = { 'block__valence', 'block__color_control' };
+separators = { 'block__social' };
+
+% separate_images = raw.excel_images.images.only( separators );
 
 separated = processed.only( separators );
-separate_images = raw.excel_images.images.only( separators );
+separate_images = separated.images;
 
-[analyses.fits.mvts, analyses.fits.discount] = courtney__model__delay_discounting( separated, separate_images );
+filenames.mvt = fullfile( pathfor('plots'), '010307/model/mvt/social' );
+filenames.discount = fullfile( pathfor('plots'), '010307/model/discount/social' );
+
+[analyses.fits.mvts, analyses.fits.discount] = ...
+  courtney__model__delay_discounting( separated, separate_images, ...
+    'mvtYLims', [-8 8], ...
+    'SAVE', true, ...
+    'filenames', filenames ...
+  );
 
 analyses.aics.aic = cellfun( @(x) x.mdl.ModelCriterion.AIC, analyses.fits.mvts );
 analyses.aics.tt = cellfun( @(x) x.travel_time, analyses.fits.mvts );
 
 %%  mvt
 
-% separators = { 'block__social', 'nonsocial' };
-separators = { 'block__valence', 'block__color_control', 'negative' };
+separators = { 'block__social', 'nonsocial' };
+% separators = { 'block__valence', 'block__color_control', 'positive' };
 % separators = { 'block__social', 'lager', 'expression__na' };
 
 separated = processed.only( separators );
@@ -22,21 +33,32 @@ separated = processed.only( separators );
 analyses.psth = courtney__analysis__fix_psth( separated, 100 );
     
 analyses.fits = courtney__model__mvt( analyses.psth.summed, ...
-    'binnedMeasure', analyses.psth.binned, ...
-    'savePlots', false, ...
-    'plotSubfolder', '121916/social_control/social' );
+  'binnedMeasure', analyses.psth.binned, ...
+  'savePlots', false, ...
+  'showPlots', true, ...
+  'plotSubfolder', '121916/social_control/social' );
 
 %%  1c
 
 % separators = { 'block__social', 'nonsocial' };
-separators = { 'block__valence', 'block__color_control', 'neg' };
+% separators = { 'block__valence', 'block__color_control', 'neg' };
+% separators = { 'block__valence', 'block__color_control' };
+separators = { 'block__social', 'nonsocial' };
+% separators = { 'block__valence', 'block__color_control', 'negative' };
 
-separate_images = raw.excel_images.images.only( separators );
+% separate_images = raw.excel_images.images.only( separators );
+separate_images = processed.images.only( separators );
+
+analyses.fits.tt_observed = courtney__analysis__tt_v_patchres( ...
+    separate_images, analyses.fits.travelTime_vs_patchResidence, ...
+    'maxPatchTime', 15e3 );
 
 courtney__plot__observed_and_optimal_travel_time_vs_patch_res( ...
-    separate_images, analyses.fits.travelTime_vs_patchResidence, ...
+    analyses.fits.tt_observed, ...
     'yLimits', [0 5], ...
-    'savePlot', true, ...
+    'savePlot', false, ...
+    'plotModeled', true, ...
+    'title', [], ...
     'plotSubfolder', '121916/valence/negative' );
 
 %%  sliding window slope comparison

@@ -4,7 +4,12 @@ params = struct( ...
     'binResolution', 100, ...
     'travelTimes', [], ...
     'minimumPatchTime', 100, ...
-    'maximumPatchTime', 5e3 ...
+    'maximumPatchTime', 15e3, ...
+    'mvtYLims', [], ...
+    'ddYLims', [], ...
+    'format', 'epsc', ...
+    'SAVE', false, ...
+    'filenames', [] ...
 );
 params = parsestruct( params, varargin );
 
@@ -33,14 +38,70 @@ discounts = cell( 1, numel(travel_times) );
 
 for i = 1:numel( travel_times )
 %     model_per_travel_time__with_valence_term( binned, travel_times(i), images, params );
-    [mvts{i}, discounts{i}] = model_per_travel_time__no_valence_term( binned, travel_times(i), images, params );
+  [mvts{i}, discounts{i}] = model_per_travel_time__no_valence_term( binned, travel_times(i), images, params );
+  
+  plot__mvt( mvts{i}, travel_times(i), params );
+  plot__discount( discounts{i}, travel_times(i), params );
 end
 
 % legend( images.uniques('travelTime') );
 
-d = 10;
+end
+
+%{
+
+      PLOT
+
+%}
+
+
+
+
+function plot__mvt( mvt, travel_time, params )
+figure;
+plot( mvt.log_response, 'r' ); hold on; plot( mvt.fitted, 'b' );
+ylabel( 'log( p_l_e_a_v_e / (1-p_l_e_a_v_e))' ); xlabel('time(s)'); set(gca, 'xticklabel', {'0','5','10','15'});
+legend( {'observed', 'estimated'} );
+title( sprintf('Travel time: %f', travel_time) );
+
+if ( ~isempty(params.mvtYLims) ), ylim( params.mvtYLims ); end;
+if ( ~params.SAVE ), return; end;
+
+tt = round( travel_time*1000 );
+
+filename = fullfile( params.filenames.mvt, sprintf('tt__%dms', tt) );
+saveas( gcf, filename, params.format );
+close gcf;
 
 end
+
+function plot__discount( discount, travel_time, params )
+figure;
+
+log_estimate = log( discount.estimated ./ (1-discount.estimated) );
+log_observed = log( discount.observed ./ (1-discount.observed) );
+
+plot( 1:numel( discount.estimated ), log_estimate ); 
+hold on; 
+plot( log_observed );
+legend( {'Estimated', 'Observed'} );
+title( sprintf('Travel time: %f', travel_time) );
+ylabel( 'log( p_l_e_a_v_e / (1-p_l_e_a_v_e))' );
+xlabel('time(s)'); 
+set(gca, 'xticklabel', {'0','5','10','15'});
+
+if ( ~isempty(params.mvtYLims) ), ylim( params.mvtYLims ); end;
+if ( ~params.SAVE ), return; end;
+
+tt = round( travel_time*1000 );
+filename = fullfile( params.filenames.discount, sprintf('tt__%dms', tt) );
+saveas( gcf, filename, params.format );
+close gcf;
+
+end
+
+
+
 
 
 function [mvt, discount] = model_per_travel_time__with_valence_term( binned, travel_time, images, params )
@@ -128,6 +189,17 @@ mvt.fitted = mvt.b(1) + (mvt.b(2) .* mvt.rewards(:)) + (mvt.b(3) .* mvt.n(:)) + 
 end
 
 
+
+
+%{
+
+      NO VALENCE TERM
+
+%}
+
+
+
+
 function [mvt, discount] = model_per_travel_time__no_valence_term( binned, travel_time, images, params )
 
 extracted_times = images.only( num2str(travel_time) );
@@ -167,10 +239,13 @@ mvt.b = table2array( mvt.mdl.Coefficients(:,1) );
 
 mvt.fitted = mvt.b(1) + (mvt.b(2) .* mvt.rewards(:)) + (mvt.b(3) .* mvt.n(:)) + ...
     (mvt.b(4) .* mvt.n2(:));
-plot( mvt.log_response, 'r' ); hold on; plot( mvt.fitted, 'b' );
+% plot( mvt.log_response, 'r' ); hold on; plot( mvt.fitted, 'b' );
+% 
+% ylabel( 'log( p_l_e_a_v_e / (1-p_l_e_a_v_e))' ); xlabel('time(s)'); set(gca, 'xticklabel', {'0','5','10','15'});
+% legend( {'observed', 'estimated'} );
+% title( sprintf('Travel time: %f', travel_time) );
 
-ylabel( 'log( p_l_e_a_v_e / (1-p_l_e_a_v_e))' ); xlabel('time(s)'); set(gca, 'xticklabel', {'0','5','10','15'});
-legend( {'observed', 'estimated'} );
+if ( ~isempty(params.mvtYLims) ), ylim( params.mvtYLims ); end;
 
 %   discount model
 
@@ -220,9 +295,14 @@ end
 
 function discount = model__delay_discounting(binned, travel_time, p_leave)
 
-% cumulative = sum(binned);
-% cumulative = 1;
-binned = binned ./ max(binned); cumulative = binned(1);
+binned = binned ./ max(binned); 
+
+%   cumulative is a bit of a misnomer -- it's really the largest reward in
+%   the next patch
+
+% cumulative = max( binned );
+cumulative = binned(1);
+% cumulative = sum( binned ) ./ numel(binned)/10;
 
 fit_function = ...
     sprintf( ...
@@ -231,10 +311,12 @@ cumulative, travel_time, travel_time, cumulative, travel_time, travel_time);
 
 fit_model = fittype( fit_function, 'coefficients', { 'k', 'sigma' } );
 
-[curve, ~] = fit( (1:numel(p_leave))', p_leave(:), fit_model, 'lower', [0 0], 'upper', [10 10] );
+[curve, ~] = fit( (1:numel(p_leave))', p_leave(:), fit_model, 'lower', [0 0], 'upper', [.5 .5] );
 
 k = curve.k;
 sigma = curve.sigma;
+
+if ( any( [k == .5, sigma == .5] ) ), warning('k was .5'); end;
 
 updated_func = sprintf( ...
     'exp( (%f./(1 + %f.*%f ) - x./(1 + %f.*%f) ) ./ %f ) ./ (1 + exp( (%f./(1 + %f.*%f ) - x./(1 + %f.*%f) ) ./ %f ))', ...
@@ -252,21 +334,16 @@ stay = binned;
 
 a = updated_func( stay );
 
-figure;
-
-plot( 1:numel(a), a ); hold on; plot( p_leave );
-
-legend( {'Estimated', 'Observed'} );
+% figure;
+% plot( 1:numel(a), a ); hold on; plot( p_leave );
+% legend( {'Estimated', 'Observed'} );
 
 %%%%
 
 test__mle = eval( ['@(x, k, sigma)' fit_function] );
 phat = mle( p_leave, 'pdf', test__mle, 'start', [-0.1, -0.1] );
-
-phat = mle( p_leave, 'pdf', test__mle, 'start', [-0.1, -0.1] );
-
+phat = mle( binned, 'pdf', test__mle, 'start', [.1, .1]);
 loglik = sum( log( test__mle( binned, phat(1), phat(2) ) ) );
-% loglik = sum( log( test__mle( 1/10:.1:numel(a)/10 , phat(1), phat(2) ) ) );
 aic = 2*2 - (2*log( loglik ));
 
 if ( isnan(loglik) )
@@ -276,6 +353,8 @@ end
 discount.phat = phat;
 discount.loglik = loglik;
 discount.aic = aic;
+discount.estimated = a;
+discount.observed = p_leave;
 
 
 end

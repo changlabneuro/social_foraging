@@ -1,7 +1,7 @@
 %% excel file method
-pathinit('court'); pathadd('court');
+% pathinit('court'); pathadd('court');
 
-outerfolder = pathfor( 'excel_raw_data' );
+outerfolder = fullfile( pathfor('excel_raw_data'), '010717' );
 
 [e.excel_images, e.excel_fields] = courtney__process__excel_method( outerfolder );
 
@@ -9,7 +9,7 @@ e.excel_images = e.excel_images.lower();
 
 %% output patch files (fixed)
 
-outerfolder = fullfile( pathfor( 'patch_raw_data' ), '113016' );
+outerfolder = fullfile( pathfor('patch_raw_data'), '113016' );
 
 [ e.patch_images, e.patch_fields] = courtney__process__patch_method( outerfolder );
 
@@ -19,7 +19,8 @@ e.patch_image_data = courtney__fix_event_data( e.patch_images, e.patch_fields );
 
 %% excel RUN THIS SECTION WHILE YOU do other things
 
-e.excel_image_data = courtney__fix_event_data( e.excel_images, e.excel_fields );
+% e.excel_image_data = courtney__fix_event_data( e.excel_images, e.excel_fields );
+e.excel_image_data = courtney__fix_event_data_mult_rois( e.excel_images, e.excel_fields );
 e.excel_images = courtney__add_day_labels( e.excel_images );
 
 processed = e.excel_image_data;
