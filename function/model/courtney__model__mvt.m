@@ -20,6 +20,12 @@ travel_times = params.travelTimes;
 switch params.intakeFunction
     case 'log'
         fits = courtney__model__log_intake( measure );
+    case 'linear'
+        fits = courtney__model__linear_intake( measure );
+    case 'logistic'
+        fits = courtney__model__logistic_intake( measure );
+    case 'hyperbolic'
+        fits = courtney__model__hyperbolic_intake( measure );
     otherwise
         error( 'Unrecognized intake function %s', params.intakeFunction );
 end
@@ -40,6 +46,7 @@ for i = 1:numel( patch_times )
         travel_time = travel_times(j);
         
         rates(i, j) = gT / (patch_residence + travel_time );
+%         rates(i, j) = gT / patch_residence;
     end
 end
 
@@ -104,7 +111,7 @@ figure; hold on;
 plot( rates );
 plot( max_indices, max_rates, 'k', 'linewidth', 2 );
 legend__tts = cell( size( travel_times ) );
-for i = 1:numel(travel_times), legend__tts{i} = num2str( travel_times(i) ); end;
+for i = 1:numel(travel_times), legend__tts{i} = num2str( travel_times(i)/10 ); end;
 legend( legend__tts );
 fix_tick( 'xticklabel' ); xlabel( 'Time (s)' ); ylabel( 'E_n' );
 ylim( [0, max( max_rates(:) )] );

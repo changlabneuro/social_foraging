@@ -1,31 +1,72 @@
+BLOCK = 'valence';
+VALENCE = 'neg';
+
 %%  delay discount
 
-% separators = { 'block__valence', 'lager' };
-% separators = { 'block__valence', 'block__color_control' };
-separators = { 'block__social' };
+separators = { ['block__' BLOCK] };
+% separators = { 'block__social' };
 
 % separate_images = raw.excel_images.images.only( separators );
 
 separated = processed.only( separators );
 separate_images = separated.images;
 
-filenames.mvt = fullfile( pathfor('plots'), '010307/model/mvt/social' );
-filenames.discount = fullfile( pathfor('plots'), '010307/model/discount/social' );
+filenames.mvt = fullfile( pathfor('plots'), ['012517/model/mvt/' BLOCK] );
+filenames.discount = fullfile( pathfor('plots'), ['012517/model/discount/' BLOCK] );
+filenames.combined = fullfile( pathfor('plots'), ['012517/model/combined/' BLOCK] );
 
 [analyses.fits.mvts, analyses.fits.discount] = ...
   courtney__model__delay_discounting( separated, separate_images, ...
-    'mvtYLims', [-8 8], ...
+    'showPlots', false, ...
+    'mvtYLims', [-.0005 .1], ...
     'SAVE', true, ...
     'filenames', filenames ...
   );
 
 analyses.aics.aic = cellfun( @(x) x.mdl.ModelCriterion.AIC, analyses.fits.mvts );
 analyses.aics.tt = cellfun( @(x) x.travel_time, analyses.fits.mvts );
+%%  MODEL SUMMARY
+
+tbls = courtney__model__summary( analyses.fits.discount, analyses.fits.mvts );
+mvt_fit_tbl = courtney__model__coefficient_summary( analyses.fits.mvts );
+
+filename = fullfile( pathfor('analyses'), '012817', 'tables', BLOCK );
+fs = fieldnames(tbls);
+for i = 1:numel(fs)
+  writetable( tbls.(fs{i}), fullfile(filename, [fs{i} '__table.csv']) );
+end
+
+writetable( mvt_fit_tbl, fullfile(filename, [fs{i} '__regression_table.csv']) );
+
+%% PLOT AIC
+aics = courtney__model__get_aic( analyses.fits.discount, analyses.fits.mvts );
+weights = courtney__model__get_ak_weights( aics );
+%   plot aics
+courtney__plot__aic( aics, ...
+  'savePath', fullfile(pathfor('plots'), ['011817/model/aics/whole_session/' BLOCK]), ...
+  'SAVE', true, 'yAxisLocation', 'right', 'yLim', [-1160, -1040] );
+%%   plot weights
+courtney__plot__ak_weights( weights, aics, ... 
+  'savePath', fullfile(pathfor('plots'), ['011817/model/weights/whole_session/' BLOCK]), ...
+  'SAVE', true, 'plotRelative', true );
+
+%% PLOT AIC DIFFERENCE OVER TIME
+
+[aics, weights] = courtney__model__aic_difference_over_time( separated );
+courtney__plot__aic_over_time( aics, ...
+  'savePath', fullfile(pathfor('plots'), ['011817/model/aics/over_time/' BLOCK]), ...
+  'SAVE', false );
+courtney__plot__ak_weights_over_time( weights, aics, ...
+  'savePath', fullfile(pathfor('plots'), ['011817/model/weights/over_time/' BLOCK]), ...
+  'SAVE', true );
+
 
 %%  mvt
 
-separators = { 'block__social', 'nonsocial' };
-% separators = { 'block__valence', 'block__color_control', 'positive' };
+% separators = { 'block__social', 'nonsocial' };
+% separators = { 'block__valence', 'block__color_control' };
+% separators = { 'block__valence', 'block__color_control' };
+% separators = { 'block__valence', 'block__color_control', 'jodo' };
 % separators = { 'block__social', 'lager', 'expression__na' };
 
 separated = processed.only( separators );
@@ -33,18 +74,21 @@ separated = processed.only( separators );
 analyses.psth = courtney__analysis__fix_psth( separated, 100 );
     
 analyses.fits = courtney__model__mvt( analyses.psth.summed, ...
+  'intakeFunction', 'log', ...
   'binnedMeasure', analyses.psth.binned, ...
   'savePlots', false, ...
   'showPlots', true, ...
-  'plotSubfolder', '121916/social_control/social' );
+  'plotSubfolder', '011217/fig1/valence' );
+
+%%  new intake f(x)
+
+analyses.psth = courtney__analysis__look_proportion( separated.proportion, 100 );
+figure;
+plot( abs(1-analyses.psth.binned) );
+figure;
+plot( -diff(analyses.psth.binned) );
 
 %%  1c
-
-% separators = { 'block__social', 'nonsocial' };
-% separators = { 'block__valence', 'block__color_control', 'neg' };
-% separators = { 'block__valence', 'block__color_control' };
-separators = { 'block__social', 'nonsocial' };
-% separators = { 'block__valence', 'block__color_control', 'negative' };
 
 % separate_images = raw.excel_images.images.only( separators );
 separate_images = processed.images.only( separators );
@@ -58,8 +102,39 @@ courtney__plot__observed_and_optimal_travel_time_vs_patch_res( ...
     'yLimits', [0 5], ...
     'savePlot', false, ...
     'plotModeled', true, ...
+    'addSEM', false, ...
     'title', [], ...
     'plotSubfolder', '121916/valence/negative' );
+%% REPLICATE 
+
+separators = { ['block__' BLOCK], VALENCE };
+% separators = { ['block__' BLOCK] };
+separated = processed.only( separators );
+
+separated = separated.collapse( 'monkey' );
+
+monks = separated.images.uniques( 'monkey' );
+sep = separated.images;
+psths = DataObject();
+for i = 1:numel(monks)
+  labels.monkeys = monks(i);
+  current = separated.only( monks{i} );
+  data = courtney__analysis__fix_psth( current, 100 );
+  data = courtney__model__mvt( data.summed, ...
+    'intakeFunction', 'log', 'binnedMeasure', data.binned, ...
+    'savePlots', false, 'showPlots', false ...
+  );
+  psths = psths.append( DataObject( {data}, labels ) );
+end
+
+stats = courtney__plot__replicate_manuscript_fig3( sep.remove({'0.5', '9'}), ...
+  'modeled', psths, 'allOnOneFigure', true, ...
+  'addRibbon', true, 'save', false, ...
+  'append', '_social' );
+
+filename = fullfile( pathfor('analyses'), '012817', 'tables', BLOCK );
+filename = fullfile( filename, VALENCE );
+writetable( stats.data, filename );
 
 %%  sliding window slope comparison
 
@@ -92,9 +167,6 @@ plot( ys );
 % plot( analyses.sliding_slope.slopes.observed );
 
 %%  bootstrapped sliding slope
-
-separated = processed.only( separators );
-separate_images = raw.excel_images.images.only( separators );
 
 analyses.bootstrap = courtney__analysis__sliding_slope_bootstrap( ...
     separated, separate_images, ...

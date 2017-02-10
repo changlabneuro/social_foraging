@@ -4,16 +4,16 @@ goto( 'processed_data' ); cd( './010317' );
 load( 'processed.mat' );
 files = { 'events', 'images', 'labels', 'times' };
 
-% raw = struct();
-% raw.excel_images = struct();
-% 
-% for i = 1:numel( files )
-%     current = load( ['raw' files{i}] ); current = current.object;
-%     raw.excel_images.( files{i} ) = current;
-% end
-% 
-% raw.excel_images = DataObjectStruct( raw.excel_images );
-% raw.excel_images = courtney__add_day_labels( raw.excel_images );
+raw = struct();
+raw.excel_images = struct();
+
+for i = 1:numel( files )
+    current = load( ['raw' files{i}] ); current = current.object;
+    raw.excel_images.( files{i} ) = current;
+end
+
+raw.excel_images = DataObjectStruct( raw.excel_images );
+raw.excel_images = courtney__add_day_labels( raw.excel_images );
 
 processed = courtney__add_day_labels( processed );
 processed = processed.foreach( @courtney__fix_day_labels );

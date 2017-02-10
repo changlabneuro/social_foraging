@@ -10,9 +10,11 @@ params = struct( ...
     'startTimeColumn', start_col, ...
     'endTimeColumn', end_col, ...
     'fix_psth_preallocation_amount', 15e3, ...
-    'roi', struct( 'minX', 600, 'maxX', 1200, 'minY', 150, 'maxY', 750 ), ...
+    'roi', struct( 'minX', -10e3, 'maxX', 10e3, 'minY', -10e3, 'maxY', 10e3 ), ...
     'n_divisions', 10 ...
 );
+
+% 'roi', struct( 'minX', 600, 'maxX', 1200, 'minY', 150, 'maxY', 750 ), ...
 
 params = parsestruct( params, varargin );
 
@@ -92,14 +94,14 @@ for i = 1:numel( image_starts )
     %   end index is the index of the final fixation *starttime* that
     %       occurred before the image ended.
     
-    start_index = find( fix_starts >= image_start, 1, 'first' );
-%     start_index = find( fix_ends >= image_start, 1, 'first' );
+%     start_index = find( fix_starts >= image_start, 1, 'first' );
+    start_index = find( fix_ends >= image_start, 1, 'first' );
     %   OPTION 1 -- fixations are only considered valid if they end before
     %   the image ends
-    end_index = find( fix_ends <= image_end, 1, 'last' );
+%     end_index = find( fix_ends <= image_end, 1, 'last' );
     %   OPTION 2 -- fixations *are* considered valid so long as they being
     %   before they the image ends
-%     end_index = find( fix_starts < image_end, 1, 'last' );
+    end_index = find( fix_starts < image_end, 1, 'last' );
 
     %   validate
 
@@ -151,7 +153,8 @@ for i = 1:numel( image_starts )
     
     %   proportion of image seen over time
     
-    prop = get_proportion_of_image_seen_over_time( within_time_bounds, image_start, params );
+%     prop = get_proportion_of_image_seen_over_time( within_time_bounds, image_start, params );
+    prop = 0;
     
     %   data per image
     

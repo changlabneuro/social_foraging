@@ -49,6 +49,7 @@ patchres.observed = y_observed;
 tts = unique( x_observed(:,2) );
 
 means = layeredstruct( {{ 'tt', 'mean', 'sem' }}, zeros( 1, numel(tts) ) );
+means.actual = cell( 1, numel(tts) );
 
 for i = 1:numel(tts)
   extr = y_observed( x_observed(:,2) == tts(i) );
@@ -56,6 +57,7 @@ for i = 1:numel(tts)
   means.tt(i) = tts(i);
   means.mean(i) = mean( extr );
   means.sem(i) = SEM( extr );
+  means.actual{i} = extr;
   
 end
 
