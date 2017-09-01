@@ -1,26 +1,32 @@
-function courtney__plot__ak_weights_over_time( weights, aics, varargin )
+function courtney__plot__ak_weights_over_time_rev( weights, tts, ids, varargin )
 
 params = struct( ...
   'SAVE', false, ...
-  'savePath', [] ...
+  'savePath', [], ...
+  'yLim', [] ...
 );
 params = parsestruct( params, varargin );
 
-tts = aics.travel_time;
-legend_tts = strread( num2str(tts), '%s' );
+legend_tts = arrayfun( @num2str, tts, 'un', false );
+label_ids = cellfun( @(x) strrep(x, '_', ' '), ids, 'un', false );
 
 figure;
-semilogy( weights.relative' );
+semilogy( weights' );
 legend( legend_tts );
 xlim_setter();
 xlabel( '% trials per session' );
-ylabel( 'Relative performance of MVT model' );
+ylabel( sprintf('Relative performance of %s model over %s model' ...
+  , label_ids{1}, label_ids{2}) );
+if ( ~isempty(params.yLim) )
+  ylim( params.yLim );
+end
 
 if ( ~params.SAVE ), return; end;
 full_save_path = fullfile( params.savePath, 'weights' );
 if ( exist(params.savePath, 'dir') ~= 7 ); mkdir(params.savePath); end;
 assert( ~isempty(params.savePath), 'Specify a savePath' );
-saveas( gcf, fullfile(params.savePath, 'weights'), 'epsc' );
+filename = sprintf( '%s_%s_weights', ids{1}, ids{2} );
+saveas( gcf, fullfile(params.savePath, filename), 'epsc' );
 close gcf;
 
 end

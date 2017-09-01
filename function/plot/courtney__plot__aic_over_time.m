@@ -23,6 +23,7 @@ xlabel( '% trials per session' );
 
 if ( params.SAVE )
   assert( ~isempty(params.savePath), 'Specify a savePath' );
+  if ( exist(params.savePath, 'dir') ~= 7 ); mkdir(params.savePath); end;
   saveas( gcf, fullfile(params.savePath, 'mvt_aics'), 'epsc' );
   close gcf;
 end
@@ -36,6 +37,7 @@ xlabel( '% trials per session' );
 
 if ( params.SAVE )
   assert( ~isempty(params.savePath), 'Specify a savePath' );
+  if ( exist(params.savePath, 'dir') ~= 7 ); mkdir(params.savePath); end;
   saveas( gcf, fullfile(params.savePath, 'discount_aics'), 'epsc' );
   close gcf;
 end
@@ -48,6 +50,7 @@ xlabel( '% trials per session' );
 
 if ( params.SAVE )
   assert( ~isempty(params.savePath), 'Specify a savePath' );
+  if ( exist(params.savePath, 'dir') ~= 7 ); mkdir(params.savePath); end;
   saveas( gcf, fullfile(params.savePath, 'difference_aics'), 'epsc' );
   close gcf;
 end

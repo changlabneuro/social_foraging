@@ -1,4 +1,5 @@
-function [mvts, discounts] = courtney__model__delay_discounting( measures, images, varargin )
+function [mvts, discounts, only_r_term, only_t_terms] = ...
+  courtney__model__sci_rev( measures, images, varargin )
 
 params = struct( ...
     'binResolution', 100, ...
@@ -39,14 +40,26 @@ binned = psth.binned;
 
 mvts = cell( 1, numel(travel_times) );
 discounts = cell( 1, numel(travel_times) );
+only_r_term = cell( size(mvts) );
+only_t_terms = cell( size(mvts) );
 
 for i = 1:numel( travel_times )
-%     model_per_travel_time__with_valence_term( binned, travel_times(i), images, params );
-  [mvts{i}, discounts{i}] = model_per_travel_time__no_valence_term( binned, travel_times(i), images, params );
+  [mvts{i}, discounts{i}, only_r_term{i}, only_t_terms{i}] = ...
+    model_per_travel_time__no_valence_term( binned, travel_times(i), images, params );
   if ( ~params.showPlots ), continue; end;
-  plot__mvt( mvts{i}, travel_times(i), params );
-  plot__discount( discounts{i}, travel_times(i), params );
-  plot__combined( mvts{i}, discounts{i}, travel_times(i), params );
+%   plot__mvt( mvts{i}, travel_times(i), params );
+%   plot__discount( discounts{i}, travel_times(i), params );
+%   plot__combined( mvts{i}, discounts{i}, travel_times(i), params );
+  %   plot all;
+  tt = travel_times(i);
+  filenames = params.filenames;
+  combined = [mvts(i), discounts(i), only_r_term(i), only_t_terms(i)];
+  plot__mult( combined, tt, filenames.combined, params );
+  %   plot each individually
+  plot__mult( mvts(i), tt, filenames.mvt, params );
+  plot__mult( discounts(i), tt, filenames.discount, params );
+  plot__mult( only_r_term(i), tt, filenames.only_r_term, params );
+  plot__mult( only_t_terms(i), tt, filenames.only_t_terms, params );
 end
 
 % legend( images.uniques('travelTime') );
@@ -136,6 +149,40 @@ close gcf;
 
 end
 
+function plot__mult( models, travel_time, folder, params )
+
+figure(1); 
+clf();
+hold on;
+names = cell( size(models) );
+for i = 1:numel(models)
+  mdl = models{i};
+  if ( i == 1 )
+    observed = mdl.observed;
+    plot( observed, 'k' );
+  end
+  plot( mdl.fitted );
+  names{i} = mdl.name;
+end
+
+names = cellfun( @(x) strrep(x, '_', ' '), names, 'un', false );
+
+legend( [{'Observed'}, names(:)'] );
+ylabel( 'p_l_e_a_v_e' );
+xlabel('time(s)'); 
+title( sprintf('Travel time: %f', travel_time) );
+
+if ( ~isempty(params.mvtYLims) ), ylim( params.mvtYLims ); end;
+if ( ~params.SAVE ), return; end;
+if ( exist(folder, 'dir') ~= 7 ); mkdir( folder ); end;
+
+tt = round( travel_time*1000 );
+filename = fullfile( folder, sprintf('tt__%dms', tt) );
+saveas( gcf, filename, params.format );
+close gcf;
+
+end
+
 
 
 %{
@@ -147,31 +194,8 @@ end
 %}
 
 
-
-function mvt = r__mvt( mvt )
-
-r_path = fullfile( pathfor('court'), 'function', 'model', 'r' );
-tmp_path = fullfile( r_path, 'tmp' );
-csvs = { 'response', 'rewards', 'n', 'n2' };
-
-for i = 1:numel(csvs)
-  to_write = mvt.(csvs{i});
-  csvwrite( fullfile(tmp_path, ['tmp__' csvs{i} '.csv']), to_write(:) );
-end
-
-r_script_name = fullfile( r_path, 'courtney__mvt__get_aic.R' );
-command = sprintf( 'Rscript ''%s'' ''%s''', r_script_name, tmp_path );
-[~, out] = system( command );
-
-
-% [mvt.rewards(:) mvt.n(:) mvt.n2(:)], fit_params.response, ...
-%     'distribution', fit_params.dist );
-
-end
-
-
 %{
-    r mvt
+    r delay discount
 %}
 
 
@@ -236,7 +260,7 @@ end
 
 
 
-function [mvt, discount] = model_per_travel_time__no_valence_term( binned, travel_time, images, params )
+function [mvt, discount, only_r_term, only_t_terms] = model_per_travel_time__no_valence_term( binned, travel_time, images, params )
 
 extracted_times = images.only( num2str(travel_time) );
 patch_res = extracted_times.data(:,2) - extracted_times.data(:,1);
@@ -295,6 +319,8 @@ mvt.rewards = binned;
 mvt.n = times;
 mvt.n2 = mvt.n .^ 2;
 mvt.travel_time = travel_time;
+mvt.name = 'mvt';
+mvt.observed = mvt.response;
 
 fit_params.dist = 'normal';
 % fit_params.response = mvt.log_response(:);
@@ -313,22 +339,34 @@ mvt.fitted = mvt.b(1) + (mvt.b(2) .* mvt.rewards(:)) + (mvt.b(3) .* mvt.n(:)) + 
 residuals = mvt.mdl.Residuals{:,'Raw'};
   
 mvt.RMSE = sqrt( sum((residuals.^2 ./ numel(residuals))) );
-% plot( mvt.log_response, 'r' ); hold on; plot( mvt.fitted, 'b' );
-% 
-% ylabel( 'log( p_l_e_a_v_e / (1-p_l_e_a_v_e))' ); xlabel('time(s)'); set(gca, 'xticklabel', {'0','5','10','15'});
-% legend( {'observed', 'estimated'} );
-% title( sprintf('Travel time: %f', travel_time) );
-
-if ( ~isempty(params.mvtYLims) ), ylim( params.mvtYLims ); end;
 
 %   discount model
 
-discount = r__delay_discount(binned, travel_time, p_leave_pdf );
-% mvt = r__mvt( mvt );
+discount = r__delay_discount( binned, travel_time, p_leave_pdf );
+discount.fitted = discount.estimated;
+discount.name = 'discount';
 
-% discount = model__delay_discounting(binned, travel_time, p_leave);
+%   only_r_term
 
-% discount = model__dd(binned, travel_time, p_leave_pdf );
+only_r_term = mvt;
+only_r_term.name = 'only_r_term';
+only_r_term.coefficient_names = { 'intercept', 'reward' };
+only_r_term.mdl = fitglm( only_r_term.rewards(:), fit_params.response ...
+  , 'distribution', fit_params.dist );
+coeffs = table2array( only_r_term.mdl.Coefficients(:,1) );
+fitted = coeffs(1) + (coeffs(2) .* only_r_term.rewards(:));
+only_r_term.fitted = fitted;
+
+%   only_t_terms
+
+only_t_terms = mvt;
+only_t_terms.name = 'only_t_terms';
+only_t_terms.coefficient_names = { 'intercept', 'time', 'timeSq' };
+only_t_terms.mdl = fitglm( [only_t_terms.n(:), only_t_terms.n2(:)] ...
+  , fit_params.response, 'distribution', fit_params.dist );
+B = table2array( only_t_terms.mdl.Coefficients(:,1) );
+fitted = B(1) + (B(2) .* only_t_terms.n(:)) + (B(3) .* only_t_terms.n2(:));
+only_t_terms.fitted = fitted;
 
 return;
 

@@ -1,14 +1,14 @@
 function outs = courtney__model__mvt( measure, varargin )
 
 params = struct( ...
-    'intakeFunction', 'log', ...
-    'patchTimes', 0:numel(measure), ...
-    'travelTimes', [10 30 50 70], ...
-    'showPlots', true, ...
-    'savePlots', false, ...
-    'extension', 'epsc', ...
-    'binnedMeasure', [], ...
-    'plotSubfolder', '121916' ...
+  'intakeFunction', 'log', ...
+  'patchTimes', 0:numel(measure)-1, ...
+  'travelTimes', [10 30 50 70], ...
+  'showPlots', true, ...
+  'savePlots', false, ...
+  'extension', 'epsc', ...
+  'binnedMeasure', [], ...
+  'plotSubfolder', '121916' ...
 );
 params = parsestruct( params, varargin );
 
@@ -18,16 +18,21 @@ travel_times = params.travelTimes;
 %   get the intake function g();
 
 switch params.intakeFunction
-    case 'log'
-        fits = courtney__model__log_intake( measure );
-    case 'linear'
-        fits = courtney__model__linear_intake( measure );
-    case 'logistic'
-        fits = courtney__model__logistic_intake( measure );
-    case 'hyperbolic'
-        fits = courtney__model__hyperbolic_intake( measure );
-    otherwise
-        error( 'Unrecognized intake function %s', params.intakeFunction );
+  case 'log'
+    fits = courtney__model__log_intake( measure );
+  case 'linear'
+    fits = courtney__model__linear_intake( measure );
+  case 'logistic'
+    fits = courtney__model__logistic_intake( measure );
+  case 'hyperbolic'
+    fits = courtney__model__hyperbolic_intake( measure );
+  case 'empirical'
+%     [f, x] = ecdf( params.binnedMeasure );    
+%     inds = arrayfun( @(y) find(x == y, 1, 'first'), params.binnedMeasure );
+%     fits.func = @(x) f(inds(x)) * max(params.binnedMeasure);
+    fits.func = @(x) measure(x+1);
+  otherwise
+      error( 'Unrecognized intake function %s', params.intakeFunction );
 end
 
 %   for each patch residence and travel-time, obtain the 'optimal' intake
@@ -38,16 +43,16 @@ g = fits.func;
 rates = zeros( numel(patch_times), numel(travel_times) );
 
 for i = 1:numel( patch_times )
-    patch_residence = patch_times(i);
+  patch_residence = patch_times(i);
     
-    gT = g( patch_residence );
+  gT = g( patch_residence );
     
-    for j = 1:numel( travel_times )
-        travel_time = travel_times(j);
-        
-        rates(i, j) = gT / (patch_residence + travel_time );
-%         rates(i, j) = gT / patch_residence;
-    end
+  for j = 1:numel( travel_times )
+    travel_time = travel_times(j);
+
+    rates(i, j) = gT / (patch_residence + travel_time );
+%     rates(i, j) = gT / patch_residence;
+  end
 end
 
 %   find maximum rates per travel time
@@ -79,16 +84,18 @@ if ( ~params.showPlots ); return; end;
 savepath = fullfile( pathfor('plots'), params.plotSubfolder );
 extension = params.extension;
 
+if ( exist(savepath, 'dir') ~= 7 ), mkdir( savepath ); end;
+
 %   plot raw binned look counts, if they exist
 
 if ( ~isempty(params.binnedMeasure) )
-    figure;
-    plot( params.binnedMeasure );
-    fix_tick( 'xticklabel' );
-    xlabel( 'Time (s)' );
-    ylabel( 'Fixation counts: summed over trials, binned into 100ms bins' );
-    filename = fullfile( savepath, 'binned_looking_behavior' );
-    saveas( gcf, filename, extension );
+  figure;
+  plot( params.binnedMeasure );
+  fix_tick( 'xticklabel' );
+  xlabel( 'Time (s)' );
+  ylabel( 'Fixation counts: summed over trials, binned into 100ms bins' );
+  filename = fullfile( savepath, 'binned_looking_behavior' );
+  saveas( gcf, filename, extension );
 end
 
 
@@ -101,8 +108,8 @@ legend( {'Approximated', 'Observed'} );
 ylabel( 'Social reward harvested' ); fix_tick( 'xticklabel' );
 
 if ( params.savePlots )
-    filename = fullfile( savepath, 'gT_vs_observed' );
-    saveas(gcf, filename, extension );
+  filename = fullfile( savepath, 'gT_vs_observed' );
+  saveas(gcf, filename, extension );
 end
 
 %   patch-res vs. max intake rate, per travel time
@@ -117,8 +124,8 @@ fix_tick( 'xticklabel' ); xlabel( 'Time (s)' ); ylabel( 'E_n' );
 ylim( [0, max( max_rates(:) )] );
 
 if ( params.savePlots )
-    filename = fullfile( savepath, 'energy_intake_vs_patch_res' );
-    saveas(gcf, filename, extension );
+  filename = fullfile( savepath, 'energy_intake_vs_patch_res' );
+  saveas(gcf, filename, extension );
 end
 
 %   travel time vs. rate-maximizing patch-res time
@@ -143,7 +150,7 @@ labels = get(gca, type );
 nums = str2double( labels );
 nums = nums / 10;
 for i = 1:numel( nums )
-    labels{i} = num2str( nums(i) );
+  labels{i} = num2str( nums(i) );
 end
 
 set(gca, type, labels );

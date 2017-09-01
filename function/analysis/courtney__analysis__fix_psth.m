@@ -5,11 +5,13 @@ if ( nargin < 2 ); thresh = 100; end;
 fix_psth_data = separated.fix_psth.data;
 
 binned = get_binned_fix_counts( fix_psth_data, thresh );
+meaned = get_binned_fix_counts( fix_psth_data, thresh, true );
 
 summed = sum_over_bins( binned );
 
 outs.summed = summed;
 outs.binned = binned;
+outs.meaned = meaned;
 
 % [ binned_prop, n_trials_neg ] = fix_proportions( fix_psth_data, 100 );
 % outs.binned_prop = binned_prop;

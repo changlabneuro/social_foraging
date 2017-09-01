@@ -1,4 +1,4 @@
-function courtney__plot__ak_weights( w, aics, varargin )
+function courtney__plot__ak_weights( w, tt, name1, name2, varargin )
 
 params = struct( ...
   'yLim', [], ...
@@ -9,23 +9,25 @@ params = struct( ...
 params = parsestruct( params, varargin );
 
 weights = w.weights;
-tt = aics.travel_time;
+names = { name1, name2 };
+names = cellfun( @(x) strrep(x, '_', ' '), names, 'un', false );
 
 if ( params.plotRelative )
   semilogy( tt, weights.relative, 'r' );
 else
-  plot( tt, weights.discount ); hold on; plot( tt, weights.mvt );
-  legend( {'Discount', 'MVT'} );
+  plot( tt, weights.(name1) ); hold on; plot( tt, weights.(name2) );
+  legend( names );
   ylim([ -.02, 1.02]);
 end
 xlim( [min(tt)-1, max(tt)+1] );
-ylabel( 'Relative likelihood of MVT' );
+ylabel( sprintf('Relative likelihood of %s', names{1}) );
 xlabel( 'Travel Time (s)' );
 
 if ( ~isempty(params.yLim) ), ylim( params.yLim ); end;
 if ( ~params.SAVE ), return; end;
+if ( exist(params.savePath, 'dir') ~= 7 ), mkdir( params.savePath ); end;
 assert( ~isempty(params.savePath), 'Specify a save-path as savePath, ''' );
-saveas( gcf, fullfile(params.savePath, 'whole_session_weights'), 'epsc' ); close gcf;
+saveas( gcf, fullfile(params.savePath, [name1 '_' name2]), 'epsc' ); close gcf;
 % 
 % figure;
 % plot( tt, aics.discount ); hold on;

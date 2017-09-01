@@ -10,8 +10,11 @@ for i = 1:numel( discount )
   tt(i) = discount{i}.travel_time;
 end
 
-aics.mvt = mvt_aic;
-aics.discount = discount_aic;
+m1_name = discount{1}.name;
+m2_name = mvt{1}.name;
+
+aics.(m1_name) = discount_aic;
+aics.(m2_name) = mvt_aic;
 aics.travel_time = tt;
 
 end
