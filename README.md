@@ -1,4 +1,4 @@
-* DEPENDENCIES
+DEPENDENCIES
 =====
 
 Most of the functionality depends on an external repository, accessible via https://github.com/nfagan/global.
